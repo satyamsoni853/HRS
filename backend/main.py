@@ -59,9 +59,28 @@ def read_employee(employee_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Employee not found")
     return db_employee
 
+@app.delete("/employees/{employee_id}")
+def delete_employee(employee_id: int, db: Session = Depends(get_db)):
+    db_employee = db.query(models.Employee).filter(models.Employee.id == employee_id).first()
+    if not db_employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
     db.delete(db_employee)
     db.commit()
     return {"message": "Employee deleted successfully"}
+
+@app.put("/employees/{employee_id}", response_model=schemas.Employee)
+def update_employee(employee_id: int, employee: schemas.EmployeeCreate, db: Session = Depends(get_db)):
+    db_employee = db.query(models.Employee).filter(models.Employee.id == employee_id).first()
+    if not db_employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    for key, value in employee.dict().items():
+        setattr(db_employee, key, value)
+        
+    db.commit()
+    db.refresh(db_employee)
+    return db_employee
+
 
 @app.post("/attendance/", response_model=schemas.Attendance)
 def create_attendance(attendance: schemas.AttendanceCreate, db: Session = Depends(get_db)):
